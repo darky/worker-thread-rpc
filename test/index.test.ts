@@ -16,6 +16,11 @@ type RpcMap = {
     context: { test: true };
     response: { test: true; id: string };
   };
+  doubleCallTest: {
+    params: {};
+    context: {};
+    response: 1;
+  };
 };
 
 describe("Worker thread RPC", () => {
@@ -39,5 +44,15 @@ describe("Worker thread RPC", () => {
     const resp = await wtr.callRpc("testContext", {}, { test: true });
     expect(resp.test).toEqual(true);
     expect(typeof resp.id).toEqual("string");
+  });
+
+  it("Double call check", async () => {
+    const wtr = new WorkerThreadRpc<RpcMap>();
+    wtr.registerRpc("testResponse", async () => 1);
+    wtr.registerRpc("doubleCallTest", async ({}, {}, call) => {
+      return call("testResponse", {}, {});
+    });
+    const resp = await wtr.callRpc("doubleCallTest", {}, {});
+    expect(resp).toEqual(1);
   });
 });
