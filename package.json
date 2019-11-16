@@ -2,7 +2,12 @@
   "name": "worker-thread-rpc",
   "version": "0.1.0",
   "description": "RPC cluster based on worker threads",
-  "main": "index.js",
+  "main": "src/index.js",
+  "files": [
+    "src/*.js",
+    "src/index.d.ts"
+  ],
+  "types": "src/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
