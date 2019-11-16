@@ -4,7 +4,7 @@ import path from "path";
 import EventEmitter from "events";
 
 import { roundrobin, genUid } from "./utils";
-import { WorkerResponse } from "./types";
+import { WorkerResponse, Context } from "./types";
 
 export type WorkerThreadRpcOptions = {
   workerCount?: number;
@@ -31,13 +31,13 @@ export class WorkerThreadRpc<
     name: K,
     fn: (
       params: RpcMap[K]["params"],
-      context: RpcMap[K]["context"],
+      context: RpcMap[K]["context"] & Context,
       call: <K extends keyof RpcMap>(
         name: K,
         params: RpcMap[K]["params"],
         context: RpcMap[K]["context"]
       ) => Promise<RpcMap[K]["response"]>
-    ) => any
+    ) => Promise<RpcMap[K]["response"]>
   ) {
     const fnStr = `const fn = ${fn.toString()};`;
     for (const worker of this.workers.values()) {
