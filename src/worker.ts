@@ -3,7 +3,6 @@ import { parentPort, MessagePort } from "worker_threads";
 import { roundrobin } from "./utils";
 import { WorkerResponse, Context } from "./types";
 
-const fn = () => {};
 let rpcMap = new Map<string, Function>();
 let siblingsForCall = new Map<number, MessagePort>();
 let siblingsForReceive = new Map<number, MessagePort>();
@@ -32,8 +31,7 @@ function main() {
   return parentPort.on("message", async msg => {
     switch (msg.type) {
       case "registerRpc": {
-        eval(msg.fn);
-        rpcMap.set(msg.name, fn);
+        rpcMap.set(msg.name, eval(msg.fn)());
         break;
       }
       case "callRpc": {

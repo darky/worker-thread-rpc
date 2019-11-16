@@ -39,7 +39,7 @@ export class WorkerThreadRpc<
       ) => Promise<RpcMap[K]["response"]>
     ) => Promise<RpcMap[K]["response"]>
   ) {
-    const fnStr = `const fn = ${fn.toString()};`;
+    const fnStr = `() => (${fn.toString()})`;
     for (const worker of this.workers.values()) {
       worker.postMessage({ type: "registerRpc", name, fn: fnStr });
     }
@@ -47,8 +47,8 @@ export class WorkerThreadRpc<
 
   async callRpc<K extends keyof RpcMap>(
     name: K,
-    params: RpcMap[K]["params"] = {},
-    context: RpcMap[K]["context"] = {}
+    params: RpcMap[K]["params"],
+    context: RpcMap[K]["context"]
   ) {
     return new Promise<RpcMap[K]["response"]>(resolve => {
       const workerId = this.nextWorkerId();
@@ -68,7 +68,7 @@ export class WorkerThreadRpc<
 
   private initWorkersMap() {
     for (let i = 0; i < this.workerCount; i++) {
-      const worker = new Worker(path.resolve(__dirname, "./worker"));
+      const worker = new Worker(path.resolve(__dirname, "./worker.js"));
       this.workers.set(worker.threadId, worker);
     }
   }
