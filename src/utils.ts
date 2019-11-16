@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-export function roundrobin(array = [], index = 0) {
+export function roundrobin(array: number[] = [], index = 0) {
   return function() {
     if (index >= array.length) index = 0;
     return array[index++];

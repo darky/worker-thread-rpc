@@ -4,6 +4,7 @@ import path from "path";
 import EventEmitter from "events";
 
 import { roundrobin, genUid } from "./utils";
+import { WorkerResponse } from "./types";
 
 export type WorkerThreadRpcOptions = {
   workerCount?: number;
@@ -12,15 +13,16 @@ export type WorkerThreadRpcOptions = {
 export class WorkerThreadRpc<
   RpcMap extends { [K: string]: { params: any; context: any; response: any } }
 > {
-  private workerCount: number;
+  private workerCount!: number;
   private workers = new Map<number, Worker>();
-  private nextWorkerId: () => number;
+  private nextWorkerId!: () => number;
   private events = new EventEmitter();
 
   constructor(private options: WorkerThreadRpcOptions = {}) {
     this.initWorkersCount();
     this.initWorkersMap();
     this.initWorkersMessageChannels();
+    this.initWorkersSiblingsReady();
     this.initWorkerRoundRobin();
     this.initListenCallRpc();
   }
@@ -31,12 +33,13 @@ export class WorkerThreadRpc<
       params: RpcMap[K]["params"],
       context: RpcMap[K]["context"],
       call: <K extends keyof RpcMap>(
+        name: K,
         params: RpcMap[K]["params"],
         context: RpcMap[K]["context"]
       ) => Promise<RpcMap[K]["response"]>
     ) => any
   ) {
-    const fnStr = fn.toString();
+    const fnStr = `const fn = ${fn.toString()};`;
     for (const worker of this.workers.values()) {
       worker.postMessage({ type: "registerRpc", name, fn: fnStr });
     }
@@ -49,7 +52,7 @@ export class WorkerThreadRpc<
   ) {
     return new Promise<RpcMap[K]["response"]>(resolve => {
       const workerId = this.nextWorkerId();
-      const worker = this.workers.get(workerId);
+      const worker = this.workers.get(workerId)!;
       const id = genUid();
       Object.assign(context, { id });
       this.events.once(id, (msg: RpcMap[K]["response"]) => {
@@ -93,6 +96,12 @@ export class WorkerThreadRpc<
     }
   }
 
+  private initWorkersSiblingsReady() {
+    for (const worker of this.workers.values()) {
+      worker.postMessage({ type: "siblingsReady" });
+    }
+  }
+
   private initWorkerRoundRobin() {
     const workerIds = Array.from(this.workers.keys());
     this.nextWorkerId = roundrobin(workerIds);
@@ -100,7 +109,7 @@ export class WorkerThreadRpc<
 
   private initListenCallRpc() {
     for (const worker of this.workers.values()) {
-      worker.on("message", (msg: { id: string; value: unknown }) => {
+      worker.on("message", (msg: WorkerResponse) => {
         this.events.emit(msg.id, msg.value);
       });
     }
